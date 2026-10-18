@@ -1,0 +1,9 @@
+**/node_modules/
+**/.sites-runtime/
+**/.wrangler/
+**/dist/
+**/.next/
+**/.vinext/
+**/*.tsbuildinfo
+**/.env*
+.DS_Store
