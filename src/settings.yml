@@ -1,18 +1,24 @@
----
 strategy: polling
 no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
-polling_verb: get
+polling_verb: GET
 framework_version: 3.4.3
 serverless_language: ''
 refresh_interval_floor: ''
-polling_url: ''
+polling_url: '{{ base_url }}/api/state'
 polling_headers: ''
 polling_body: ''
 id: 511237
 oauth_enabled: 'false'
 oauth_pkce_enabled: 'no'
-name: Keep it or Change it
-description:
-refresh_interval:
+name: Keep It or Change It
+description: null
+refresh_interval: 15
+custom_fields:
+- keyname: base_url
+  field_type: string
+  name: Game server URL
+  description: Public HTTPS address of the shared game, without a trailing slash.
+    The private preview cannot be polled by TRMNL.
+  placeholder: https://your-game.example.com

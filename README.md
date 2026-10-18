@@ -31,7 +31,9 @@ The browser identity uses an HttpOnly cookie. This is casual participation, not 
 1. [Download the import ZIP](releases/Keep-It-or-Change-It-TRMNL-v0.1.0.zip?raw=true).
 2. In TRMNL Private Plugins, choose **Import new** and select that ZIP.
 3. Once a public voting service exists, set **Game server URL** to its HTTPS origin, without a trailing slash.
-4. For GitHub Sync, connect this repository and leave **Folder in the repository** blank. The native files live at the repository root. Pull the latest GitHub changes into TRMNL when prompted.
+4. For GitHub Sync, connect this repository and leave **Folder in the repository** blank. The native files live in `src/`, matching TRMNL’s exported structure. Use **Import/Pull from GitHub** on the connected plugin before pressing Save in TRMNL; Save exports the editor’s current version back to GitHub.
+
+The synced settings preserve the TRMNL-assigned plugin ID. The flat import ZIP remains available for creating a separate plugin; it is not needed to restore the already connected instance.
 
 The plugin polls `/api/state` every 15 minutes. Full and half layouts include a QR code; the quarter view prioritises the image and age. All layouts use the standard TRMNL title bar. The API returns an image URL rather than base64 image bytes.
 
@@ -39,7 +41,8 @@ The plugin polls `/api/state` every 15 minutes. Full and half layouts include a 
 
 | Location | Purpose |
 |---|---|
-| `settings.yml`, `*.liquid` | Native TRMNL settings and all four layouts |
+| `src/settings.yml`, `src/*.liquid` | Canonical TRMNL sync settings and all four layouts |
+| `.trmnlp.yml` | TRMNL-generated local preview configuration |
 | `releases/` | Flat TRMNL import ZIP |
 | `companion/app/` | Mobile page, voting API, and screen design preview |
 | `companion/lib/game.ts` | Daily rounds and transactional settlement |
