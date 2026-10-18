@@ -12,7 +12,7 @@ Version **0.1.0: private pilot**. The mobile voting page and shared state are im
 
 [Open the owner-private pilot](https://keep-it-or-change-it.mchlkrt.chatgpt.site/) · [View the screen design preview](https://keep-it-or-change-it.mchlkrt.chatgpt.site/preview)
 
-**The current pilot requires its owner's hosting sign-in and cannot be polled by TRMNL. A public HTTPS deployment is needed before the polling plugin can run.** No public recipe has been submitted. Native OG/X rendering still needs device review; the browser preview is illustrative.
+**The current pilot requires its owner's hosting sign-in and cannot be polled by TRMNL. A public HTTPS deployment is needed before the polling plugin can run.** The [Cloudflare deployment guide](companion/CLOUDFLARE-DEPLOY.md) and manual GitHub Actions workflow prepare this step; they do not deploy automatically. No public recipe has been submitted. Native OG/X rendering still needs device review; the browser preview is illustrative.
 
 ## Rules
 

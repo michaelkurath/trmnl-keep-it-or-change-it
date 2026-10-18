@@ -1,0 +1,94 @@
+name: Deploy public voting service
+
+# Deliberately manual: publishing this service is separate from syncing TRMNL markup.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+      CLOUDFLARE_D1_DATABASE_NAME: keep-it-or-change-it-db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Verify required deployment secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_D1_DATABASE_ID; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::Missing GitHub Actions secret: $key"
+              exit 1
+            fi
+          done
+          if [[ ! "$CLOUDFLARE_D1_DATABASE_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "::error::CLOUDFLARE_D1_DATABASE_ID must be a Cloudflare D1 UUID"
+            exit 1
+          fi
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Test voting behavior
+        run: node --test test/game.test.mjs
+      - name: Check types
+        run: pnpm exec tsc --noEmit
+      - name: Build Worker with production D1 binding
+        run: pnpm run build
+      - name: Check generated binding and deployment config
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from "node:fs";
+          const config = JSON.parse(readFileSync("dist/server/wrangler.json", "utf8"));
+          const binding = config.d1_databases?.find((d) => d.binding === "DB");
+          if (!binding || binding.database_id !== process.env.CLOUDFLARE_D1_DATABASE_ID) {
+            throw new Error("Generated Worker config is missing the real D1 DB binding.");
+          }
+          console.log("Worker config includes the production DB binding.");
+          JS
+      - name: Deploy to Cloudflare Workers
+        run: pnpm exec wrangler deploy --config dist/server/wrangler.json
+      - name: Optional public API smoke test
+        env:
+          PUBLIC_GAME_URL: ${{ vars.PUBLIC_GAME_URL }}
+        run: |
+          if [[ -z "$PUBLIC_GAME_URL" ]]; then
+            echo "No PUBLIC_GAME_URL repository variable yet. Open the deployed workers.dev URL and verify /api/state before connecting TRMNL."
+            exit 0
+          fi
+          node --input-type=module <<'JS'
+          const origin = process.env.PUBLIC_GAME_URL.replace(/\/$/, "");
+          for (let attempt = 1; attempt <= 5; attempt++) {
+            try {
+              const response = await fetch(origin + "/api/state", { headers: { Accept: "application/json" } });
+              const data = await response.json();
+              if (!response.ok || !data.image_url || !data.vote_url || !data.closes_at) {
+                throw new Error("Unexpected API state response (" + response.status + ")");
+              }
+              const image = await fetch(data.image_url);
+              if (!image.ok || !image.headers.get("content-type")?.startsWith("image/")) {
+                throw new Error("Current image URL is not reachable.");
+              }
+              console.log("Public API and artwork respond successfully.");
+              process.exit(0);
+            } catch (error) {
+              if (attempt === 5) throw error;
+              console.log("Waiting for deployment to become healthy (" + attempt + "/5)...");
+              await new Promise((resolve) => setTimeout(resolve, 6000));
+            }
+          }
+          JS

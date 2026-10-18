@@ -1,0 +1,40 @@
+name: Validate voting companion
+
+on:
+  pull_request:
+    paths:
+      - "companion/**"
+      - ".github/workflows/validate-voting.yml"
+  push:
+    branches: [main]
+    paths:
+      - "companion/**"
+      - ".github/workflows/validate-voting.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Database and voting behavior tests
+        run: node --test test/game.test.mjs
+      - name: TypeScript check
+        run: pnpm exec tsc --noEmit
+      - name: Build Cloudflare Worker
+        run: pnpm run build
+      - name: Verify generated Worker config
+        run: test -f dist/server/wrangler.json
